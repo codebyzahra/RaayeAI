@@ -1,61 +1,77 @@
 import streamlit as st
-import joblib
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import torch
+import torch.nn.functional as F
 import re
-import emoji
+import emoji as emoji_lib
 
-# Load models
-lr = joblib.load('raayeai_lr_model.pkl')
-tfidf = joblib.load('raayeai_tfidf.pkl')
+@st.cache_resource
+def load_model():
+    model = AutoModelForSequenceClassification.from_pretrained("YOUR_HF_USERNAME/RaayeAI-mbert")
+    tokenizer = AutoTokenizer.from_pretrained("YOUR_HF_USERNAME/RaayeAI-mbert")
+    return model, tokenizer
 
-# Preprocessing
+model, tokenizer = load_model()
+device = torch.device('cpu')
+model = model.to(device)
+model.eval()
+
 def preprocess(text):
+    if not isinstance(text, str): return ""
     text = text.lower()
-    text = emoji.demojize(text, delimiters=(" ", " "))
-    text = re.sub(r'http\S+|www\S+', '', text)
+    text = emoji_lib.demojize(text, delimiters=(" ", " "))
     roman_urdu_map = {
         r'\bbht\b': 'bohot', r'\bbhut\b': 'bohot', r'\bnhi\b': 'nahi',
         r'\bthk\b': 'theek', r'\bthik\b': 'theek', r'\bkr\b': 'kar',
         r'\bphr\b': 'phir', r'\bmje\b': 'mujhe', r'\bor\b': 'aur',
+        r'\bachi\b': 'acha', r'\bachha\b': 'acha',
+        r'\btheek theek\b': 'average', r'\btheek\b': 'average',
+        r'\bna acha na bura\b': 'average',
+        r'\bkhas nahi\b': 'not special', r'\bkuch khas nahi\b': 'nothing special',
+        r'\bbakwaas\b': 'terrible', r'\bbkwas\b': 'terrible',
+        r'\bbekar\b': 'useless', r'\bghatia\b': 'terrible',
+        r'\bfaltu\b': 'useless', r'\bnakli\b': 'fake',
+        r'\bdhoka\b': 'fraud', r'\bloot\b': 'scam',
+        r'\bkharab\b': 'bad quality', r'\bbilkul sahi\b': 'perfectly fine',
+        r'\bkhush hun\b': 'happy satisfied', r'\bdobara lunga\b': 'will buy again',
     }
     for pattern, replacement in roman_urdu_map.items():
         text = re.sub(pattern, replacement, text)
     text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
+    return re.sub(r'\s+', ' ', text).strip()
 
-# Suggestions
 def get_suggestion(sentiment):
-    suggestions = {
-        'Positive': "✅ Great review! Consider requesting a public rating from this customer.",
-        'Neutral':  "⚠️ Customer seems unsatisfied. Room for improvement in product/delivery.",
-        'Negative': "🚨 Serious issue flagged. Consider reaching out to this customer directly."
-    }
-    return suggestions[sentiment]
+    return {
+        'Positive': "✅ Great review! Consider requesting a public rating.",
+        'Neutral': "⚠️ Room for improvement in product/delivery.",
+        'Negative': "🚨 Serious issue flagged. Consider reaching out directly."
+    }[sentiment]
 
-# UI
-st.set_page_config(page_title="RaayeAI", page_icon="🛍️", layout="centered")
-st.title("🛍️ RaayeAI")
-st.subheader("Product Review Sentiment Analyzer for Roman Urdu")
+st.set_page_config(page_title="RaayeAI", page_icon="🛍️")
+st.title("🛍️ RaayeAI v2")
+st.subheader("Product Review Sentiment Analyzer — Roman Urdu")
 st.markdown("---")
 
-review = st.text_area("Paste or type a product review:", height=150, 
-                       placeholder="e.g. bohot acha product hai, time pe deliver hua...")
+review = st.text_area("Paste or type a review:", height=150,
+                       placeholder="e.g. bohot acha product hai...")
 
 if st.button("Analyze"):
     if review.strip() == "":
-        st.warning("Please enter a review first!")
+        st.warning("Please enter a review!")
     else:
         clean = preprocess(review)
-        vector = tfidf.transform([clean])
-        pred = lr.predict(vector)[0]
-        proba = lr.predict_proba(vector)[0]
+        inputs = tokenizer(clean, return_tensors='pt',
+                          max_length=256, truncation=True, padding='max_length')
+        with torch.no_grad():
+            outputs = model(**inputs)
+            probs = F.softmax(outputs.logits, dim=1)[0]
+            pred = torch.argmax(outputs.logits, dim=1).item()
 
         label_map = {0: 'Negative', 1: 'Neutral', 2: 'Positive'}
         sentiment = label_map[pred]
-        confidence = round(max(proba) * 100, 2)
-
-        emoji_map = {'Positive': '😊', 'Neutral': '😐', 'Negative': '😠'}
+        confidence = round(max(probs.tolist()) * 100, 2)
         color_map = {'Positive': 'green', 'Neutral': 'orange', 'Negative': 'red'}
+        emoji_map = {'Positive': '😊', 'Neutral': '😐', 'Negative': '😠'}
 
         st.markdown(f"### Sentiment: :{color_map[sentiment]}[{emoji_map[sentiment]} {sentiment}]")
         st.metric("Confidence", f"{confidence}%")

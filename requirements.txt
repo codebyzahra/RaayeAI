@@ -1,4 +1,7 @@
 streamlit
-joblib
-scikit-learn
+torch
+transformers
 emoji
+scikit-learn
+pandas
+numpy
