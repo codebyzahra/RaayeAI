@@ -7,8 +7,8 @@ import emoji as emoji_lib
 
 @st.cache_resource
 def load_model():
-    model = AutoModelForSequenceClassification.from_pretrained("YOUR_HF_USERNAME/RaayeAI-mbert")
-    tokenizer = AutoTokenizer.from_pretrained("YOUR_HF_USERNAME/RaayeAI-mbert")
+    model = AutoModelForSequenceClassification.from_pretrained("codeZ1234/RaayeAI-mbert")
+    tokenizer = AutoTokenizer.from_pretrained("codeZ1234/RaayeAI-mbert")
     return model, tokenizer
 
 model, tokenizer = load_model()
