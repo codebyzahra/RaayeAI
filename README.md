@@ -19,3 +19,6 @@ Python | Scikit-learn | TF-IDF | Streamlit | NLP
 - Negative: 93.6% accuracy
 - Neutral: 92.6% accuracy  
 - Positive: 90.7% accuracy
+
+## 📓 Training Notebook
+[View v1 Notebook](https://github.com/codebyzahra/RaayeAI/blob/master/RaayeAI_v1_TF_IDF.ipynb)
