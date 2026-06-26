@@ -1,7 +1,7 @@
 # 🛍️ RaayeAI
 **Roman Urdu Product Review Sentiment Analyzer**
 
-🔗 **Live Demo:** https://raayeai-sentiment1.streamlit.app/
+🔗 **Live Demo:** https://raayeai-sentiment-app.streamlit.app/
 🤗 **Model:** [codeZ1234/RaayeAI-mbert](https://huggingface.co/codeZ1234/RaayeAI-mbert)
 
 ---
