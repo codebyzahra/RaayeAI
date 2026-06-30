@@ -321,7 +321,7 @@ with tab1:
                     pred = torch.argmax(outputs.logits, dim=1).item()
 
                 label_map = {0: 'Negative', 1: 'Neutral', 2: 'Positive'}
-                sentiment = label_map[pred]
+                sentiment = label_map[pred] # type: ignore
                 confidence = round(max(probs.tolist()) * 100, 2)
                 
                 emoji_map = {'Positive': '😊', 'Neutral': '😐', 'Negative': '😠'}
